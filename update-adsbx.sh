@@ -64,6 +64,7 @@ systemctl enable \
     readsb.service \
     adsbexchange-mlat.service \
     adsbexchange-feed.service \
+    adsbexchange-gpsmon.service \
     pingfail.service
 
 # mask services we don't need on this image
