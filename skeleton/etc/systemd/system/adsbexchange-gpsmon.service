@@ -10,7 +10,7 @@ StandardOutput=inherit
 StandardError=inherit
 Restart=always
 RestartSec=30
-User=adsbexchange
+User=root
 Nice=19
 IOSchedulingClass=idle
 
