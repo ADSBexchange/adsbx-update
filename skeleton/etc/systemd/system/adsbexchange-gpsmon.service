@@ -4,7 +4,7 @@ Description=ADSBexchange GPS Monitor
 [Service]
 Type=simple
 SyslogIdentifier=adsbexchange-gpsmon
-ExecStart=/usr/local/share/adsbexchange-gpsmon/adsbexchange-gpsmon.sh
+ExecStart=/bin/bash /usr/local/share/adsbexchange-gpsmon/adsbexchange-gpsmon.sh
 RuntimeDirectory=adsbexchange-gpsmon
 StandardOutput=inherit
 StandardError=inherit
