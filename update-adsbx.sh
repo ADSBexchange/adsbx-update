@@ -67,6 +67,7 @@ systemctl enable \
     readsb.service \
     adsbexchange-mlat.service \
     adsbexchange-feed.service \
+    gpsd.service \
     adsbexchange-gpsmon.service \
     pingfail.service
 
