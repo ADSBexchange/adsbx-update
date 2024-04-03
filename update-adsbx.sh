@@ -30,8 +30,11 @@ function aptInstall() {
     fi
 }
 
-packages="git make gcc libusb-1.0-0 libusb-1.0-0-dev librtlsdr0 librtlsdr-dev ncurses-bin ncurses-dev zlib1g zlib1g-dev python3-dev python3-venv libzstd-dev libzstd1 gpsd gpsd-clients bc"
+packages="git make gcc libusb-1.0-0 libusb-1.0-0-dev librtlsdr0 librtlsdr-dev ncurses-bin ncurses-dev zlib1g zlib1g-dev python3-dev python3-venv libzstd-dev libzstd1 gpsd bc"
 aptInstall $packages
+
+# No idea why this has to be on it's own, but apparently it does
+apt install -y --no-install-recommends --no-install-suggests gpsd-clients
 
 git clone --quiet --depth 1 https://github.com/adsbexchange/adsbx-update.git
 cd adsbx-update
