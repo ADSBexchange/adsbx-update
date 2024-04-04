@@ -3,13 +3,15 @@
 lastmove_epoch='211676880' #Set value far in the past
 minmoving='5' # cutoff for "moving" in meters/sec, must be integer
 minstill='600' # minimum time GPS must be "still" before reactivating MLAT.  If under this time, MLAT will be deactivated.
+lastconfig_time="None"
+lastmove_time="None"
 source /boot/adsb-config.txt
 
 
 function refresh_pos {
 
         # Get GPS string, ignore if x/y accuracy is > 50 meters.
-        GPS_STRING=$(gpspipe --json -n 10 | grep -m 1 "\"epx\"" | jq -c 'select(.epx < 50 and .epy < 50)')
+        GPS_STRING=$(gpspipe -x 15 --json -n 10 | grep -m 1 "\"epx\"" | jq -c 'select(.epx < 50 and .epy < 50)')
         echo $GPS_STRING > /tmp/gpspos
         SPEED=$(echo $GPS_STRING | jq -r '.speed')
         SPEED=$(echo "$SPEED" | awk '{print int($1)}') # truncate to integer value
@@ -20,6 +22,7 @@ function refresh_pos {
            echo "We are moving, speed is greater than $minmoving m/s, speed: " $SPEED
             # Track the last known time we were moving
             lastmove_epoch=$(date +%s)
+            lastmove_time=$(date)
         else
             echo "We're not moving"
         fi
@@ -65,6 +68,7 @@ function update_adsb_config() {
     cat /tmp/webconfig/geocode | jq -r .'locality' > /tmp/webconfig/location
     cat /tmp/webconfig/geocode | jq -r .'principalSubdivisionCode' >> /tmp/webconfig/location
     cat /tmp/webconfig/geocode | jq -r .'countryName' >> /tmp/webconfig/location
+    lastconfig_time=$(date)
 
 }
 
@@ -111,8 +115,10 @@ fi
   echo -----
   echo String: $GPS_STRING
   echo GPS LAT LON ALT Speed: $GPS_LAT, $GPS_LON, $GPS_ALT, $SPEED
-  echo Configured LAT/LON/ALT $LATITUDE $LONGITUDE $ALTITUDE
-  echo "Stationary for: $timestill"
+  echo Configured LAT/LON/ALT $LATITUDE, $LONGITUDE, $ALTITUDE
+  #echo "Stationary for: $timestill"
+  echo "Last Movement: $lastmove_time"
+  echo "Last Configured Pos Update: $lastconfig_time"
   echo -----
 
 
