@@ -7,8 +7,8 @@ if [ $(id -u) -ne 0 ]; then
 fi
 
 echo -e "\n\n  APT clean"
-apt autoremove -y
-apt clean -y
+#apt autoremove -y
+#apt clean -y
 
 echo -e "\n\n RESET UUID"
 rm -f /boot/adsbx-uuid
@@ -16,6 +16,10 @@ rm -f /boot/adsbx-uuid
 echo -e "\n\n RESET ZT"
 rm -f /var/lib/zerotier-one/identity.*
 rm -f /var/lib/zerotier-one/authtoken.secret
+
+echo -e "\n\n RESET TAILSCALE"
+tailscale logout
+rm -f /var/lib/tailscale/tailscaled.state
 
 echo -e "\n RESET SSH"
 rm /etc/ssh/ssh_host_*
