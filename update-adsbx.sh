@@ -6,6 +6,9 @@ if [[ "$(id -u)" != "0" ]]; then
     exec sudo bash "$BASH_SOURCE"
 fi
 
+# This is required for low memory devices, else apt update locks
+sudo dphys-swapfile swapon
+
 # let's do all of this in a clean directory:
 updir=/tmp/update-adsbx
 
