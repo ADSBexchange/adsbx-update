@@ -7,7 +7,15 @@ if [[ "$(id -u)" != "0" ]]; then
 fi
 
 # This is required for low memory devices, else apt update locks
-sudo dphys-swapfile swapon
+if swapon --summary | grep -q "^"; then
+    echo "Swap is already active."
+else
+    # Activate the swap file using dphys-swapfile
+    echo "Activating swap..."
+    sudo dphys-swapfile swapon
+    echo "Swap activated."
+fi
+
 
 # let's do all of this in a clean directory:
 updir=/tmp/update-adsbx
