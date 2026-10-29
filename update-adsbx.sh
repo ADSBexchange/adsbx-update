@@ -41,6 +41,13 @@ function aptInstall() {
     fi
 }
 
+# buster packages are served from legacy.raspbian.org
+if grep -qs '^VERSION_CODENAME=buster$' /etc/os-release \
+    && grep -qs 'raspbian.raspberrypi.org/raspbian' /etc/apt/sources.list; then
+    sed -i 's#raspbian.raspberrypi.org/raspbian#legacy.raspbian.org/raspbian#g' /etc/apt/sources.list
+    apt update
+fi
+
 packages="git make gcc libusb-1.0-0 libusb-1.0-0-dev librtlsdr0 librtlsdr-dev ncurses-bin ncurses-dev zlib1g zlib1g-dev python3-dev python3-venv libzstd-dev libzstd1 bc"
 aptInstall $packages
 
@@ -69,16 +76,13 @@ rm -f /usr/local/bin/adsbexchange-978-convert.sh
 
 systemctl daemon-reload
 
-# enable services
-systemctl enable \
-    adsbexchange-first-run.service \
-    adsbx-zt-enable.service \
-    readsb.service \
-    adsbexchange-mlat.service \
-    adsbexchange-feed.service \
-    gpsd.service \
-    adsbexchange-gpsmon.service \
-    pingfail.service
+# enable services (gpsd is not installed on all images)
+for service in adsbexchange-first-run adsbx-zt-enable readsb adsbexchange-mlat \
+    adsbexchange-feed gpsd adsbexchange-gpsmon pingfail; do
+    if systemctl list-unit-files --no-legend "$service.service" | grep -q .; then
+        systemctl enable "$service.service"
+    fi
+done
 
 # mask services we don't need on this image
 MASK="dump1090-fa dump1090 dump1090-mutability dump978-rb dump1090-rb"
