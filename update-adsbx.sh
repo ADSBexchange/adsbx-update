@@ -1,6 +1,13 @@
 #!/bin/bash
 set -e
-trap 'echo "[ERROR] Error in line $LINENO when executing: $BASH_COMMAND"' ERR
+trap 'echo "[ERROR] Error in line $LINENO when executing: $BASH_COMMAND"; if [[ -n $current_step ]]; then step "$current_step" failed "line $LINENO: $BASH_COMMAND"; fi' ERR
+
+# progress markers read by the web UI: "== step <id> <start|ok|failed> (<time>)[: <message>]"
+current_step=
+step() {
+    echo "== step $1 $2 ($(date +%H:%M:%S))${3:+: $3}"
+    if [[ $2 == start ]]; then current_step=$1; else current_step=; fi
+}
 
 if [[ "$(id -u)" != "0" ]]; then
     exec sudo bash "$BASH_SOURCE"
@@ -49,7 +56,11 @@ if grep -qs '^VERSION_CODENAME=buster$' /etc/os-release \
 fi
 
 packages="git make gcc libusb-1.0-0 libusb-1.0-0-dev librtlsdr0 librtlsdr-dev ncurses-bin ncurses-dev zlib1g zlib1g-dev python3-dev python3-venv libzstd-dev libzstd1 bc"
+step packages start
 aptInstall $packages
+step packages ok
+
+step skeleton start
 
 
 git clone --quiet --depth 1 https://github.com/adsbexchange/adsbx-update.git
@@ -93,6 +104,9 @@ for service in $MASK; do
 done &>/dev/null
 
 cd $updir
+step skeleton ok
+
+step readsb start
 git clone --quiet --depth 1 https://github.com/adsbexchange/readsb.git
 
 echo 'compiling readsb (this can take a while) .......'
@@ -136,6 +150,9 @@ restartIfEnabled adsbexchange-978
 cd $updir
 rm -rf $updir/readsb
 
+step readsb ok
+
+step stats start
 echo 'updating adsbx stats .......'
 wget --quiet -O /tmp/axstats.sh https://raw.githubusercontent.com/adsbexchange/adsbexchange-stats/master/stats.sh
 bash /tmp/axstats.sh
@@ -144,6 +161,9 @@ echo 'cleaming up stats /tmp .......'
 rm -f /tmp/axstats.sh
 rm -f -R /tmp/adsbexchange-stats-git
 
+step stats ok
+
+step mlat-client start
 VENV=/usr/local/share/adsbexchange/venv/
 if [[ -f /usr/local/share/adsbexchange/venv/bin/python3.7 ]] && command -v python3.9 &>/dev/null;
 then
@@ -164,10 +184,12 @@ if git clone --quiet --depth 1 --single-branch https://github.com/adsbexchange/m
     && git rev-parse HEAD > $IPATH/mlat_version || rm -f $IPATH/mlat_version \
 ; then
     rm "$VENV-backup" -rf
+    step mlat-client ok
 else
     rm "$VENV" -rf
     mv "$VENV-backup" "$VENV" &>/dev/null || true
     echo "--------------------"
+    step mlat-client failed "install failed, the previous version was restored"
     echo "Installing mlat-client failed, if there was an old version it has been restored."
     echo "Will continue installation to try and get at least the feed client working."
     echo "Please repot this error to the adsbexchange forums or discord."
@@ -182,8 +204,12 @@ rm -f -R $updir/mlat-client
 
 cd $updir
 
+step tar1090 start
 echo 'update tar1090 ...........'
 bash -c "$(wget -nv -O - https://raw.githubusercontent.com/wiedehopf/tar1090/master/install.sh)"
+step tar1090 ok
+
+step config start
 
 if [[ -f /boot/adsb-config.txt ]]; then
     if ! grep -qs -e 'GRAPHS1090' /boot/adsb-config.txt; then
@@ -196,6 +222,8 @@ fi
 
 
 # the following doesn't apply for chroot (image creation)
+step config ok
+
 if ischroot; then
     exit 0
 fi
