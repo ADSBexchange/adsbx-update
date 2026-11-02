@@ -9,6 +9,11 @@ step() {
     if [[ $2 == start ]]; then current_step=$1; else current_step=; fi
 }
 
+# ADSBX_UPDATE_COMPONENTS: comma-separated subset of readsb,mlat-client,tar1090 to update; unset or empty = all
+wants() {
+    [[ -z ${ADSBX_UPDATE_COMPONENTS:-} || ",$ADSBX_UPDATE_COMPONENTS," == *",$1,"* ]]
+}
+
 if [[ "$(id -u)" != "0" ]]; then
     exec sudo bash "$BASH_SOURCE"
 fi
@@ -128,6 +133,7 @@ done &>/dev/null
 cd $updir
 step skeleton ok
 
+if wants readsb; then
 step readsb start
 git clone --quiet --depth 1 https://github.com/adsbexchange/readsb.git
 
@@ -173,6 +179,9 @@ cd $updir
 rm -rf $updir/readsb
 
 step readsb ok
+else
+    step readsb skipped
+fi
 
 step stats start
 echo 'updating adsbx stats .......'
@@ -185,6 +194,7 @@ rm -f -R /tmp/adsbexchange-stats-git
 
 step stats ok
 
+if wants mlat-client; then
 step mlat-client start
 VENV=/usr/local/share/adsbexchange/venv/
 if [[ -f /usr/local/share/adsbexchange/venv/bin/python3.7 ]] && command -v python3.9 &>/dev/null;
@@ -223,13 +233,20 @@ restartIfEnabled adsbexchange-mlat
 
 cd $updir
 rm -f -R $updir/mlat-client
+else
+    step mlat-client skipped
+fi
 
 cd $updir
 
+if wants tar1090; then
 step tar1090 start
 echo 'update tar1090 ...........'
 bash -c "$(wget -nv -O - https://raw.githubusercontent.com/wiedehopf/tar1090/master/install.sh)"
 step tar1090 ok
+else
+    step tar1090 skipped
+fi
 
 step config start
 
