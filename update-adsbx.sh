@@ -13,6 +13,28 @@ if [[ "$(id -u)" != "0" ]]; then
     exec sudo bash "$BASH_SOURCE"
 fi
 
+# Devices fetch this file from main on every update. The script they run comes from a release
+# branch chosen here; see CONTRIBUTING.md. ADSBX_UPDATE_DISPATCH=no runs this copy instead
+# (set by the hand-off below, and used for tests and image builds of a branch).
+if [[ ${ADSBX_UPDATE_DISPATCH:-yes} != no ]]; then
+    codename=$(. /etc/os-release 2>/dev/null; echo "${VERSION_CODENAME:-unknown}")
+    if systemctl is-enabled NetworkManager.service >/dev/null 2>&1; then nm=yes; else nm=no; fi
+    case "$codename:$nm" in
+        buster:no|bullseye:no) line=release/8.x ;;
+        bookworm:yes)          line=release/9.x ;;
+        *)
+            echo "No feed software release matches this system (os=$codename, networkmanager=$nm); keeping the installed version."
+            exit 1 ;;
+    esac
+    echo "Installing feed software from $line"
+    if ! script=$(wget -nv -O - "https://raw.githubusercontent.com/ADSBexchange/adsbx-update/$line/update-adsbx.sh") || [[ -z $script ]]; then
+        echo "Could not fetch $line; keeping the installed version."
+        exit 1
+    fi
+    ADSBX_UPDATE_DISPATCH=no ADSBX_UPDATE_BRANCH=$line bash -c "$script" && rc=0 || rc=$?
+    exit "$rc"
+fi
+
 # This is required for low memory devices, else apt update locks
 if swapon --summary | grep -q "^"; then
     echo "Swap is already active."
@@ -63,7 +85,7 @@ step packages ok
 step skeleton start
 
 
-git clone --quiet --depth 1 https://github.com/adsbexchange/adsbx-update.git
+git clone --quiet --depth 1 -b "${ADSBX_UPDATE_BRANCH:-main}" https://github.com/adsbexchange/adsbx-update.git
 cd adsbx-update
 
 find skeleton -type d | cut -d / -f1 --complement | grep -v '^skeleton' | xargs -t -I '{}' -s 2048 mkdir -p /'{}' &>/dev/null
