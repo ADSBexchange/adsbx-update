@@ -91,6 +91,7 @@ step skeleton start
 
 
 git clone --quiet --depth 1 -b "${ADSBX_UPDATE_BRANCH:-main}" https://github.com/adsbexchange/adsbx-update.git
+update_commit=$(git -C adsbx-update rev-parse --short HEAD 2>/dev/null)
 cd adsbx-update
 
 find skeleton -type d | cut -d / -f1 --complement | grep -v '^skeleton' | xargs -t -I '{}' -s 2048 mkdir -p /'{}' &>/dev/null
@@ -187,6 +188,8 @@ step stats start
 echo 'updating adsbx stats .......'
 wget --quiet -O /tmp/axstats.sh https://raw.githubusercontent.com/adsbexchange/adsbexchange-stats/master/stats.sh
 bash /tmp/axstats.sh
+# the installer leaves its clone behind; keep the commit it installed for the software table
+git -C /tmp/adsbexchange-stats-git rev-parse HEAD > /usr/local/share/adsbexchange-stats/version 2>/dev/null || true
 
 echo 'cleaming up stats /tmp .......'
 rm -f /tmp/axstats.sh
@@ -273,7 +276,7 @@ echo "#####################################"
 sed -e 's$^$https://www.adsbexchange.com/api/feeders/?feed=$' /boot/adsbx-uuid
 echo "#####################################"
 
-echo "8.2.$(date '+%y%m%d')" > /boot/adsbx-version-decoder
+echo "${ADSBX_UPDATE_BRANCH:-main} ${update_commit} $(date '+%Y-%m-%d')" > /boot/adsbx-version-decoder
 
 echo '--------------------------------------------'
 echo '--------------------------------------------'
